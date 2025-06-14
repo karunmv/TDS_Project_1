@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+openai
+langchain
+chromadb
+pytesseract
+Pillow
+python-multipart
+tqdm
