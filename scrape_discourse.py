@@ -1,13 +1,12 @@
-# scrape_discourse.py
-import requests
+import requests, json
 
-def scrape_discourse(start_date, end_date, base_url):
-    # Use Discourse API (add your API key if needed)
-    topics = []
-    for i in range(0, 100):  # adjust range as needed
-        res = requests.get(f"{base_url}/latest.json?page={i}")
-        if res.status_code != 200: break
-        for topic in res.json().get("topic_list", {}).get("topics", []):
-            # Filter based on creation date if available
-            topics.append(topic)
-    return topics
+def scrape_discourse(base_url, pages=10):
+    posts = []
+    for i in range(pages):
+        resp = requests.get(f"{base_url}/latest.json?page={i}")
+        if resp.status_code != 200: break
+        topics = resp.json().get("topic_list", {}).get("topics", [])
+        posts.extend(topics)
+    with open("data/discourse.json", "w") as f:
+        json.dump(posts, f, indent=2)
+    print(f"Scraped {len(posts)} posts")

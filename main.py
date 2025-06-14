@@ -1,34 +1,37 @@
-# main.py
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from pydantic import BaseModel
-from typing import Optional
-import base64
+from typing import Optional, List
+import os
+from dotenv import load_dotenv
+from langchain.vectorstores import Chroma
+from langchain.embeddings import OpenAIEmbeddings
+from generate_answer import generate_answer
+from utils import extract_text_from_base64
 
+load_dotenv()
 app = FastAPI()
+db = Chroma(persist_directory="./chroma_db", embedding_function=OpenAIEmbeddings())
 
-class QARequest(BaseModel):
+class Link(BaseModel):
+    url: str
+    text: str
+
+class QueryRequest(BaseModel):
     question: str
     image: Optional[str] = None
 
-@app.post("/api/")
-async def answer_question(payload: QARequest):
-    # Process image if provided
-    if payload.image:
-        img_bytes = base64.b64decode(payload.image)
-        # OCR or vision processing if needed
+class QueryResponse(BaseModel):
+    answer: str
+    links: List[Link]
 
-    # Query your vector DB
-    relevant_docs = db.similarity_search(payload.question, k=3)
-
-    # Construct prompt & get answer from OpenAI
-    context = "\n".join([d.page_content for d in relevant_docs])
-    prompt = f"Answer the question based on context:\n\n{context}\n\nQuestion: {payload.question}"
-    answer = get_llm_response(prompt)
-
-    # Include links if available
-    links = extract_links(relevant_docs)
-
-    return {
-        "answer": answer,
-        "links": links
-    }
+@app.post("/api/", response_model=QueryResponse)
+async def answer_query(req: QueryRequest):
+    q = req.question
+    if req.image:
+        ocr = extract_text_from_base64(req.image)
+        if ocr:
+            q += "\n\n" + ocr
+    docs = db.similarity_search(q, k=3)
+    passages = [d.page_content for d in docs]
+    answer, links = generate_answer(req.question, passages)
+    return QueryResponse(answer=answer, links=links)

@@ -5,5 +5,5 @@ langchain
 chromadb
 pytesseract
 Pillow
-python-multipart
-tqdm
+python-dotenv
+requests

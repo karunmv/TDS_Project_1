@@ -1,13 +1,12 @@
 import base64
-from PIL import Image
 import io
+from PIL import Image
 import pytesseract
 
-def extract_text_from_base64(img_str):
+def extract_text_from_base64(img_b64: str) -> str:
     try:
-        image_bytes = base64.b64decode(img_str)
-        image = Image.open(io.BytesIO(image_bytes))
-        text = pytesseract.image_to_string(image)
-        return text.strip()
-    except Exception as e:
+        data = base64.b64decode(img_b64)
+        image = Image.open(io.BytesIO(data))
+        return pytesseract.image_to_string(image).strip()
+    except Exception:
         return ""
