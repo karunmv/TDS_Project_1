@@ -5,7 +5,9 @@ from typing import List, Optional
 
 app = FastAPI()
 
-USE_OPENAI = os.getenv("USE_OPENAI", "true").lower() == "true"
+# USE_OPENAI = os.getenv("USE_OPENAI", "true").lower() == "true"
+
+USE_OPENAI = False
 
 class QueryRequest(BaseModel):
     question: str
