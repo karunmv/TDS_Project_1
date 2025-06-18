@@ -3,7 +3,18 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import List, Optional
 
+from fastapi.middleware.cors import CORSMiddleware
+
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # or restrict to your frontend URL(s)
+    allow_methods=["*"],
+    allow_headers=["*"],
+    allow_credentials=True,
+)
+
 
 # USE_OPENAI = os.getenv("USE_OPENAI", "true").lower() == "true"
 
