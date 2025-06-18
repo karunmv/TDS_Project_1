@@ -1,24 +1,19 @@
+import os
 from fastapi import FastAPI
 from pydantic import BaseModel
-from typing import Optional, List
-import os
-from dotenv import load_dotenv
-from langchain.vectorstores import Chroma
-from langchain.embeddings import OpenAIEmbeddings
-from generate_answer import generate_answer
-from utils import extract_text_from_base64
+from typing import List, Optional
 
-load_dotenv()
 app = FastAPI()
-db = Chroma(persist_directory="./chroma_db", embedding_function=OpenAIEmbeddings())
 
-class Link(BaseModel):
-    url: str
-    text: str
+USE_OPENAI = os.getenv("USE_OPENAI", "true").lower() == "true"
 
 class QueryRequest(BaseModel):
     question: str
     image: Optional[str] = None
+
+class Link(BaseModel):
+    url: str
+    text: str
 
 class QueryResponse(BaseModel):
     answer: str
@@ -26,12 +21,30 @@ class QueryResponse(BaseModel):
 
 @app.post("/api/", response_model=QueryResponse)
 async def answer_query(req: QueryRequest):
-    q = req.question
-    if req.image:
-        ocr = extract_text_from_base64(req.image)
-        if ocr:
-            q += "\n\n" + ocr
-    docs = db.similarity_search(q, k=3)
-    passages = [d.page_content for d in docs]
-    answer, links = generate_answer(req.question, passages)
-    return QueryResponse(answer=answer, links=links)
+    # Use mock or real LLM based on environment
+    if USE_OPENAI:
+        import openai
+        openai.api_key = os.getenv("OPENAI_API_KEY")
+        completion = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": req.question}],
+            temperature=0
+        )
+        answer_text = completion.choices[0].message.content.strip()
+    else:
+        # 🔁 Mocked answer for development/testing
+        answer_text = f"Mocked answer for: '{req.question}'"
+
+    # Example dummy links — replace with actual retrieval logic or keep for mock mode
+    links = [
+        Link(
+            url="https://discourse.onlinedegree.iitm.ac.in/t/sample-thread/12345",
+            text="Example link relevant to your question."
+        )
+    ]
+
+    return QueryResponse(answer=answer_text, links=links)
+
+@app.get("/")
+async def root():
+    return {"message": "TDS Virtual TA API. POST your question to /api/"}
